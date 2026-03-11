@@ -229,6 +229,13 @@ def splitFile(peer_id, common):
 # Config files
 def readConfigFile():
     
+    NumberOfPreferredNeighbors = None
+    UnchokingInterval = None
+    OptimisticUnchokingInterval = None
+    FileName = None
+    FileSize = None
+    PieceSize = None
+    NumberOfPieces = None
     with open("Common.cfg", "r") as f:
         # read lines in config file
         for line in f:
@@ -249,7 +256,7 @@ def readConfigFile():
                 NumberOfPieces = (FileSize + PieceSize - 1) // PieceSize
 
     config = Common(NumberOfPreferredNeighbors, UnchokingInterval, OptimisticUnchokingInterval,
-                    FileName, FileSize, PieceSize, NumberOfPieces)
+                    FileName, FileSize if FileSize is not None else 0, PieceSize, NumberOfPieces)
 
     return config
 
@@ -260,12 +267,13 @@ def getPeerInfo() -> list[Peer]:
     with open("PeerInfo.cfg", 'r') as f:
     # read lines from peer info 
         for line in f: 
-            parts = line.split(" ").strip()
-            peer = Peer()
-            peer.id = int(parts[0])
-            peer.hostname = parts[1]
-            peer.port = int(parts[2])
-            peer.hasFile = parts[3] == '1'
+            parts = line.split(" ")
+            peer = Peer(
+                id=(parts[0]),
+                hostname=parts[1],
+                port= int(parts[2]),
+                hasFile=parts[3] == '1'
+            )
             Peers.append(peer)
 
     return Peers
@@ -275,7 +283,7 @@ def createThreads(peers):
     threads = []
     # Change target function
     for peer in peers:
-        t = threading.Thread(target=peer_thread, args=(peer,common,))
+        t = threading.Thread(target=peer_thread, args=(peer,common, peers,))
         threads.append(t)
     
     return threads
@@ -474,14 +482,7 @@ def write_logs(peer_id, message):
     with open(log_file, 'a') as f:
         f.write(log)
 
-
-class PeerProcess():
-    conf = readConfigFile()
-    peer_info = getPeerInfo()
-    pass
-
 def peerProcess(peer_id):
-    conf = readConfigFile()
     peers = getPeerInfo()
     curr_peer = None
     for peer in peers:
