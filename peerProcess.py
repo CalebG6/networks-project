@@ -670,7 +670,16 @@ def handle_connection(conn, state: PeerState, expected_id=None):
         else:
             if have_any:
                 conn.sendall(makeBitfieldMessage(my_bf))
-
+                conn.settimeout(3.0)
+            try:
+                msg_type, payload = recvMessage(conn)
+                if msg_type == message_types['bitfieldType']:
+                    neighbor_bitfield = bitfieldToBoolList(payload, num_pieces)
+            except socket.timeout:
+                pass
+            finally:
+                conn.settimeout(None)
+                
         neighbor = Neighbor(
             neighborID=n_id,
             interested=False,
